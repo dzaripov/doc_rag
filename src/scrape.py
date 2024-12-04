@@ -1,54 +1,162 @@
+import re
+from url_normalize import url_normalize
 from bs4 import BeautifulSoup
 from scrapy.crawler import CrawlerProcess
-from scrapy.spiders import CrawlSpider, Rule
+from scrapy.spiders import CrawlSpider, Rule, Spider
 from scrapy.linkextractors import LinkExtractor
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urlunparse, quote
 from loguru import logger
+import requests
+from scrapy_settings import scrapy_settings_dict
 
-logger.add(f"{__file__}/../../logs/scraper.log", rotation="5 MB", level="DEBUG",
+logger.add(f"{__file__}/../../logs/" + 'scraper_{time}.log',
+           rotation="5 MB", level="DEBUG",
            format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
-class DocsSpider(CrawlSpider):
-    name = 'docs_spider'
-    allowed_domains = []  # This will be set dynamically
-    start_urls = []  # This will be set dynamically
-
-    rules = (
-        Rule(LinkExtractor(allow=()), callback='parse_item', follow=True),
-    )
-
-    def parse_item(self, response):
-        logger.info(f"Parsing URL: {response.url}")
-        soup = BeautifulSoup(response.body, 'html.parser')
+class DocsSpiderMixin:
+    def process_data(self, url, html_content):
+        soup = BeautifulSoup(html_content, 'lxml')
         text_content = soup.get_text()
-        # тут нужно либо сохранять на диск,
-        # либо сразу отправлять в векторную базу (предпочтительно сразу второе)
-        logger.debug('url: {}, content retrieved (first symbols): {}', response.url, text_content[:100])
-        yield {'url': response.url, 'content': text_content}
-        
+        logger.debug('url: {}, content retrieved (first symbols): {}', 
+                     url, text_content[:50].replace('\n', ' '))
 
-def start_scrapy(allowed_domains, start_urls, allowed_patterns):
+class DocsSpiderBase(Spider, DocsSpiderMixin):
+    name = 'docs_spider'
+    allowed_domains = []
+    start_urls = []
+    rules = None
+    def parse(self, response):
+        logger.info('Parsing URL: {}', response.url)
+        self.process_data(response.url, response.body)
+
+class EnhancedDocsSpider(CrawlSpider, DocsSpiderMixin):
+    name = 'docs_spider'
+    allowed_domains = []
+    start_urls = []
+    rules = None
+    def parse_item(self, response):
+        logger.info('Parsing URL: {}', response.url)
+        self.process_data(response.url, response.body)
+
+def check_sitemap(url):
+    def try_get_sitemap(sitemap_url):
+        logger.debug(f'Crawling sitemap at {sitemap_url}')
+        try:
+            response = requests.get(sitemap_url)
+            if response.status_code == 200:
+                logger.info(f"Sitemap found at {sitemap_url}")
+                return sitemap_url
+            else:
+                logger.info(f"No sitemap found at {sitemap_url}")
+                return None
+        except requests.RequestException as e:
+            logger.error(f"Error checking {sitemap_url}: {e}")
+            return None
+
+    sitemap_url_first = urljoin(urlparse(url).geturl(), 'sitemap.xml')
+    sitemap = try_get_sitemap(sitemap_url_first)
+    
+    if sitemap:
+        return sitemap
+
+    # try base url of site
+    parsed_url = urlparse(url)
+    base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+    sitemap_url = urljoin(base_url, 'sitemap.xml')
+    
+    return try_get_sitemap(sitemap_url)
+
+def parse_sitemap(sitemap_url):
+    if not sitemap_url:
+        return []
+    response = requests.get(sitemap_url)
+    soup = BeautifulSoup(response.content, 'xml')
+    return [loc.text for loc in soup.find_all('loc')]
+
+def create_spider_class(domain, allowed_pattern_for_domain, urls_to_crawl, follow):
+    
+    class_dict = {
+        'allowed_domains': [domain],
+        'start_urls': urls_to_crawl,
+        'rules': [],
+    }
+
+    if follow:
+        class_name = f"EnhancedDocsSpider_{domain.replace('.', '_')}"
+        class_dict.update({
+            'name': class_name,
+            'parse_item': EnhancedDocsSpider.parse_item,
+            'rules': (
+                Rule(LinkExtractor(
+                        allow=allowed_pattern_for_domain,
+                        deny=('.*\.(jpg|jpeg|png|gif)$'),
+                        unique=True,
+                        canonicalize=True,
+                        ),
+                     callback='parse_item',
+                     follow=follow),
+            ),
+        })
+        return type(class_name, (EnhancedDocsSpider,), class_dict)
+    else:
+        class_name = f"DocsSpiderBase_{domain.replace('.', '_')}"
+        class_dict.update({
+            'name': class_name,
+            'parse': DocsSpiderBase.parse,
+        })
+        return type(class_name, (DocsSpiderBase,), class_dict)
+
+def start_scrapy(start_urls):
     logger.info("Starting Scrapy process")
-    DocsSpider.allowed_domains = allowed_domains
-    DocsSpider.start_urls = start_urls
-    DocsSpider.rules = (
-        Rule(LinkExtractor(allow=allowed_patterns), callback='parse_item', follow=True),
-    )
+    process = CrawlerProcess(settings=scrapy_settings_dict)
 
-    process = CrawlerProcess(settings={
-        'LOG_LEVEL': 'INFO',
-        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-    })
-    process.crawl(DocsSpider)
+    for start_url in start_urls:
+        logger.info(f"Checking sitemap for {start_url}")
+        sitemap_url = check_sitemap(start_url)
+        sitemap_urls = parse_sitemap(sitemap_url)
+        
+        domain = urlparse(start_url).netloc
+        allowed_pattern_for_domain = urljoin(start_url, '.*')
+        if len(sitemap_urls) > 15:
+            follow = False
+            allowed_pattern = re.compile(allowed_pattern_for_domain)
+            urls_to_crawl = [url for url in sitemap_urls if allowed_pattern.match(url)]
+        else:
+            follow = True
+            urls_to_crawl = [start_url]
+
+        SpiderClass = create_spider_class(domain, allowed_pattern_for_domain, urls_to_crawl, follow)
+        process.crawl(SpiderClass)
+        logger.debug('SpiderClass: {}: {}', SpiderClass, SpiderClass.__dict__)
     process.start()
     logger.info("Scrapy process completed")
+            
+def normalize_urls(urls):
+    return [url_normalize(url) for url in urls]
 
-start_urls = ["https://python.langchain.com/docs/"]
-allowed_domains = [urlparse(url).netloc for url in start_urls]
-allowed_patterns = [urljoin(url, '.*') for url in start_urls]
+start_urls = normalize_urls([
+    # 'python.langchain.com/docs/',
+    # 'fastapi.tiangolo.com/ru/',
+    'https://docs.ragas.io/en/stable/',
+    # 'https://docs.djangoproject.com/en/5.1/',
+])
 
-for start_url, allowed_domain, allowed_pattern in zip(
-    start_urls, allowed_domains, allowed_patterns):
-    logger.debug(f"url: {start_url}, domain: {allowed_domain}, pattern: {allowed_pattern}")
+# убрать потом
+DEBUG = False
 
-documents = start_scrapy(allowed_domains, start_urls, allowed_patterns)
+if not DEBUG:
+    start_scrapy(start_urls)
+elif DEBUG:
+    import cProfile
+    import pstats
+
+    with cProfile.Profile() as pr:
+        start_scrapy(start_urls)
+        pr.dump_stats('scrapy_profile.prof')
+
+    p = pstats.Stats('scrapy_profile.prof')
+    p.sort_stats('time').print_stats(200)
+
+    p.sort_stats('calls').print_stats(10)
+
+    p.print_stats('parse_item')
