@@ -1,0 +1,14 @@
+retriever:
+  vectorstore:
+    type: vectorstore
+    k: 4
+  bm25:
+    type: BM25
+    k: 4
+  ensemble:
+    type: ensemble
+    retrievers:
+      - name: bm25
+        weight: 0.4
+      - name: vectorstore
+        weight: 0.6

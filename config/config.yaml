@@ -1,0 +1,10 @@
+defaults:
+  - llm: default
+  - retriever: default
+  - reranker: default
+
+chunk_size: 512
+chunk_overlap: 128
+chain_type: stuff
+compressor_name: None
+vectorstore_name: FAISS
