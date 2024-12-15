@@ -1,3 +1,4 @@
 llm:
   env_api_key: MISTRAL_API_KEY
+  model_name: mistral-large-latest
   api_url: https://api.mistral.ai/v1/
