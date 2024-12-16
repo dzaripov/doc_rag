@@ -1,7 +1,5 @@
 reranker:
   bm25:
-    type: BM25
     k: 4
   cross_encoder:
-    type: cross_encoder
     k: 4
