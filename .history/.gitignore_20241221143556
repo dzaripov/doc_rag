@@ -163,5 +163,3 @@ cython_debug/
 
 data
 logs
-
-rag_project
