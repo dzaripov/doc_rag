@@ -36,10 +36,11 @@ class RAGPipeline:
         rerank_results = rerank_chunks(cfg=self.config, query=custom_prompt, chunks=retrieve_results)
         # IF DO IT THIS WAY, HERE NEED TO PREPARE A REQUEST TO THE LLM
 
-        system_template = "You are an assistant that helps user with documentation. \
-        Based on the following information, give an answer to the user's request: \
-        {search_results}"
-        user_template = "User's request was: {input_text}"
+        system_template = "You are an assistant that helps user with documentation.\n"
+        "Based on the information search results, give an answer to the user's request:\n"
+        "If you can't give the answer based only on search results, say that you don't know, don't make it up yourself."
+        user_template = "Request: {input_text}\n"\
+        "Search results for this request: {search_results}"
 
         system_prompt_template = PromptTemplate(input_variables=["search_results"], template=system_template)
         user_prompt_template = PromptTemplate(input_variables=["input_text"], template=user_template)
