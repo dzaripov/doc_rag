@@ -1,6 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from pydantic_models import QueryInput, QueryResponse, DocumentInfo, DeleteFileRequest
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from src.scrape import start_scrapy
 from src.pdf_reader import read_pdf
 import os
@@ -18,17 +17,6 @@ app = FastAPI(title="RAG Pipeline API", description="API LLM-приложени�
 async def upload_and_index_document(docs_url: str):
     documents = start_scrapy(docs_url)
     
-    text_splitter = RecursiveCharacterTextSplitter(
-    separators=['\n'],
-    chunk_size=500,
-    chunk_overlap=200,
-    length_function=len,
-    is_separator_regex=False,
-    )
-
-    for chunk in text_splitter.split_text(documents):
-        # и тут в игру вступает очередь
-
     # тут место для генерации вашего милвуса 
 
 @app.post("/chat", response_model=QueryResponse)

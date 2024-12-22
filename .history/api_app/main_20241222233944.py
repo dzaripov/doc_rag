@@ -17,7 +17,6 @@ app = FastAPI(title="RAG Pipeline API", description="API LLM-приложени�
 @app.post("/upload")
 async def upload_and_index_document(docs_url: str):
     documents = start_scrapy(docs_url)
-    
     text_splitter = RecursiveCharacterTextSplitter(
     separators=['\n'],
     chunk_size=500,
@@ -26,8 +25,7 @@ async def upload_and_index_document(docs_url: str):
     is_separator_regex=False,
     )
 
-    for chunk in text_splitter.split_text(documents):
-        # и тут в игру вступает очередь
+    for 
 
     # тут место для генерации вашего милвуса 
 
