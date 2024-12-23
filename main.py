@@ -12,7 +12,7 @@ logging.basicConfig(filename='app.log', level=logging.INFO)
 
 # Initialize FastAPI app
 app = FastAPI(title="RAG Pipeline API", description="API LLM-приложения для работы с документацией")
-
+users_chat_history = {}
 
 @app.post("/upload")
 async def upload_and_index_document(docs_url: str):
@@ -20,8 +20,8 @@ async def upload_and_index_document(docs_url: str):
     
     text_splitter = RecursiveCharacterTextSplitter(
     separators=['\n'],
-    chunk_size=500,
-    chunk_overlap=200,
+    chunk_size=16000,
+    chunk_overlap=600,
     length_function=len,
     is_separator_regex=False,
     )
@@ -36,12 +36,13 @@ def chat(query_input: QueryInput):
     session_id = query_input.session_id or str(uuid.uuid4())
     logging.info(f"Session ID: {session_id}, User Query: {query_input.question}")
 
-    chat_history = get_chat_history(session_id) #тут мы забираем историю запросов пользователя
+    chat_history = users_chat_history.setdefault(session_id, '') #тут мы забираем историю запросов пользователя
     rag_chain = get_rag_chain(query_input.config_path) #а тут мы запускаем пайплайн
     answer = rag_chain.invoke({
         "input": query_input.question,
         "chat_history": chat_history
     })['answer']
 
+    users_chat_history[session_id] += f'\n human: {query_input.question} \n assistant: {answer}'
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
     return QueryResponse(answer=answer, session_id=session_id)
