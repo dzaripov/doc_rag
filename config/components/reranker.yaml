@@ -1,0 +1,5 @@
+reranker:
+  bm25:
+    k: 4
+  cross_encoder:
+    k: 4

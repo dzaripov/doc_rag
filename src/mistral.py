@@ -1,11 +1,15 @@
-from loguru import logger
 from typing import List, Optional, Union
-from langchain.llms.base import LLM
+
 import openai
+<<<<<<< HEAD
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
+=======
+from langchain.llms.base import LLM
+from loguru import logger
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
 
 
 class MistralLLM(LLM):
@@ -17,17 +21,23 @@ class MistralLLM(LLM):
     def _llm_type(self) -> str:
         return "mistral"
 
-    def _call(self, system_prompt: str, user_prompt: str,
-              stop: Optional[List[str]] = None, max_tokens: int = 150, **kwargs) -> str:
+    def _call(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        stop: Optional[List[str]] = None,
+        max_tokens: int = 150,
+        **kwargs
+    ) -> str:
         client = openai.Client(api_key=self.api_key, base_url=self.api_url)
         payload = {
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             "max_tokens": max_tokens,
-            **kwargs
+            **kwargs,
         }
         logger.debug("Request Payload: {}", payload)
         try:
@@ -40,7 +50,8 @@ class MistralLLM(LLM):
 
     def generate(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
         return self._call(system_prompt, user_prompt, **kwargs)
-    
+
+
 class MistralEmbed:
     api_key: str = os.getenv("MISTRAL_API_KEY")
     model_name: str = 'mistral-embed'
@@ -53,10 +64,17 @@ class MistralEmbed:
     def _call(self, texts: List[str], **kwargs) -> List[List[float]]:
         client = openai.Client(api_key=self.api_key, base_url=self.api_url)
         payload = {"model": self.model_name, "input": texts, **kwargs}
+<<<<<<< HEAD
         # logger.debug("Request Payload: {}", payload)
         try:
             response = client.embeddings.create(**payload)
             # logger.debug("Response: {}", response)
+=======
+        logger.debug("Request Payload: {}", payload)
+        try:
+            response = client.embeddings.create(**payload)
+            logger.debug("Response: {}", response)
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
             embeddings = [embedding.embedding for embedding in response.data]
             logger.debug("Embeddings shape: ({}, {})",
                          len(embeddings), len(embeddings[0]))
@@ -65,7 +83,19 @@ class MistralEmbed:
             logger.error("Error: {}", e)
             raise
 
-    def generate_embeddings(self, texts: Union[str, List[str]], **kwargs) -> Union[List[float], List[List[float]]]:
+    def _embed_text(
+            self, texts: Union[str, List[str]], **kwargs
+    ) -> Union[List[float], List[List[float]]]:
         if isinstance(texts, str):
             texts = [texts]
         return self._call(texts, **kwargs)
+
+    def embed_documents(
+            self, query: Union[str, List[str]], **kwargs
+    ) -> Union[List[float], List[List[float]]]:
+        return self._embed_text(query, **kwargs)
+
+    def embed_query(
+            self, query: Union[str, List[str]], **kwargs
+    ) -> Union[List[float], List[List[float]]]:
+        return self._embed_text(query, **kwargs)[0]

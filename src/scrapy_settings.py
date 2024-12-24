@@ -1,19 +1,19 @@
 scrapy_settings_dict = {
-    'DELAY': 0,
-    'BOT_NAME': 'scrape',
-    'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-    'ROBOTSTXT_OBEY': False,
-    'CONCURRENT_REQUESTS': 256,
-    'DOWNLOAD_DELAY': 0,
-    'CONCURRENT_REQUESTS_PER_DOMAIN': 256,
-    'CONCURRENT_REQUESTS_PER_IP': 256,
-    'COOKIES_ENABLED': False,
-    'TELNETCONSOLE_ENABLED': False,
-    'DEFAULT_REQUEST_HEADERS': {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
+    "DELAY": 0,
+    "BOT_NAME": "scrape",
+    "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+    "ROBOTSTXT_OBEY": False,
+    "CONCURRENT_REQUESTS": 256,
+    "DOWNLOAD_DELAY": 0,
+    "CONCURRENT_REQUESTS_PER_DOMAIN": 256,
+    "CONCURRENT_REQUESTS_PER_IP": 256,
+    "COOKIES_ENABLED": False,
+    "TELNETCONSOLE_ENABLED": False,
+    "DEFAULT_REQUEST_HEADERS": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
     },
     "AUTOTHROTTLE_ENABLED": False,
     "AUTOTHROTTLE_START_DELAY": 2,
@@ -37,5 +37,10 @@ scrapy_settings_dict = {
     "DOWNLOADER_MIDDLEWARES": {
         "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
         "scrapy.downloadermiddlewares.retry.RetryMiddleware": None,
+<<<<<<< HEAD
+=======
+        "scrapy_fake_useragent.middleware.RandomUserAgentMiddleware": 400,
+        "scrapy_fake_useragent.middleware.RetryUserAgentMiddleware": 401,
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
     },
 }

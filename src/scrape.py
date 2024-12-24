@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urljoin, urlparse
 
+<<<<<<< HEAD
 import threading
 import requests
 from bs4 import BeautifulSoup
@@ -12,15 +13,28 @@ import asyncio
 from scrapy import signals
 from twisted.internet import asyncioreactor
 from scrapy.linkextractors import LinkExtractor
+=======
+import requests
+from bs4 import BeautifulSoup
+from loguru import logger
+from scrapy.crawler import CrawlerProcess
+from scrapy.linkextractors import LinkExtractor
+from scrapy.spiders import CrawlSpider, Rule, Spider
+from url_normalize import url_normalize
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
 
 from scrapy_settings import scrapy_settings_dict
 from queue_processor import QueueEmbedProcessor
 
 from loguru import logger
 
-logger.add(f"{__file__}/../../logs/" + 'scraper_{time}.log',
-           rotation="5 MB", level="DEBUG",
-           format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+logger.add(
+    f"{__file__}/../../logs/" + "scraper_{time}.log",
+    rotation="5 MB",
+    level="DEBUG",
+    format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+)
+
 
 class DocsSpiderMixin:
     def __init__(self, queue_processor):
@@ -28,8 +42,9 @@ class DocsSpiderMixin:
         super().__init__()
 
     def process_data(self, url, html_content):
-        soup = BeautifulSoup(html_content, 'lxml')
+        soup = BeautifulSoup(html_content, "lxml")
         text_content = soup.get_text()
+<<<<<<< HEAD
         self.queue_processor.add_document({
             'url': url,
             'content': text_content.replace("\n", " ")
@@ -43,29 +58,38 @@ class DocsSpiderMixin:
     def closed(self, reason):
         logger.info(f"Spider closed: {reason}")
 
+=======
+        logger.debug(
+            "url: {}, content retrieved (first symbols): {}",
+            url,
+            text_content[:50].replace("\n", " "),
+        )
+
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
 
 class DocsSpiderBase(Spider, DocsSpiderMixin):
-    name = 'docs_spider'
+    name = "docs_spider"
     allowed_domains = []
     start_urls = []
     rules = None
 
     def parse(self, response):
-        logger.info('Parsing URL: {}', response.url)
+        logger.info("Parsing URL: {}", response.url)
         self.process_data(response.url, response.body)
 
 
 class EnhancedDocsSpider(CrawlSpider, DocsSpiderMixin):
-    name = 'docs_spider'
+    name = "docs_spider"
     allowed_domains = []
     start_urls = []
     rules = None
 
     def parse_item(self, response):
-        logger.info('Parsing URL: {}', response.url)
+        logger.info("Parsing URL: {}", response.url)
         self.process_data(response.url, response.body)
 
 
+<<<<<<< HEAD
 def check_sitemap(url):
     def try_get_sitemap(sitemap_url):
         logger.debug(f'Crawling sitemap at {sitemap_url}')
@@ -76,24 +100,32 @@ def check_sitemap(url):
                 return sitemap_url
             else:
                 logger.info(f"No sitemap found at {sitemap_url}")
+=======
+class SitemapChecker:
+    @staticmethod
+    def check_sitemap(url):
+        def try_get_sitemap(sitemap_url):
+            logger.debug(f"Crawling sitemap at {sitemap_url}")
+            try:
+                response = requests.get(sitemap_url)
+                if response.status_code == 200:
+                    logger.info(f"Sitemap found at {sitemap_url}")
+                    return sitemap_url
+                else:
+                    logger.info(f"No sitemap found at {sitemap_url}")
+                    return None
+            except requests.RequestException as e:
+                logger.error(f"Error checking {sitemap_url}: {e}")
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
                 return None
-        except requests.RequestException as e:
-            logger.error(f"Error checking {sitemap_url}: {e}")
-            return None
 
-    sitemap_url_first = urljoin(urlparse(url).geturl(), 'sitemap.xml')
-    sitemap = try_get_sitemap(sitemap_url_first)
-    
-    if sitemap:
-        return sitemap
+        sitemap_url_first = urljoin(urlparse(url).geturl(), "sitemap.xml")
+        sitemap = try_get_sitemap(sitemap_url_first)
 
-    # try base url of site
-    parsed_url = urlparse(url)
-    base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-    sitemap_url = urljoin(base_url, 'sitemap.xml')
-    
-    return try_get_sitemap(sitemap_url)
+        if sitemap:
+            return sitemap
 
+<<<<<<< HEAD
 
 def parse_sitemap(sitemap_url):
     if not sitemap_url:
@@ -107,15 +139,41 @@ class SpiderCreator:
     @staticmethod
     def create_spider_class(domain, allowed_pattern_for_domain,
                             urls_to_crawl, follow, queue_processor):
+=======
+        # try base url of site
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        sitemap_url = urljoin(base_url, "sitemap.xml")
+
+        return try_get_sitemap(sitemap_url)
+
+    @staticmethod
+    def parse_sitemap(sitemap_url):
+        if not sitemap_url:
+            return []
+        response = requests.get(sitemap_url)
+        soup = BeautifulSoup(response.content, "xml")
+        return [loc.text for loc in soup.find_all("loc")]
+
+
+class SpiderCreator:
+    @staticmethod
+    def create_spider_class(domain, allowed_pattern_for_domain,
+                            urls_to_crawl, follow):
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
         class_dict = {
             "allowed_domains": [domain],
             "start_urls": urls_to_crawl,
             "rules": [],
+<<<<<<< HEAD
             "__init__": lambda self, *args, **kwargs: DocsSpiderMixin.__init__(self, queue_processor)
+=======
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
         }
 
         if follow:
             class_name = f"EnhancedDocsSpider_{domain.replace('.', '_')}"
+<<<<<<< HEAD
             class_dict.update({
                 'name': class_name,
                 'parse_item': EnhancedDocsSpider.parse_item,
@@ -223,6 +281,72 @@ class ScrapyRunner:
 
 
 
+=======
+            class_dict.update(
+                {
+                    "name": class_name,
+                    "parse_item": EnhancedDocsSpider.parse_item,
+                    "rules": (
+                        Rule(
+                            LinkExtractor(
+                                allow=allowed_pattern_for_domain,
+                                deny=(".*\.(jpg|jpeg|png|gif)$"),
+                                unique=True,
+                                canonicalize=True,
+                            ),
+                            callback="parse_item",
+                            follow=follow,
+                        ),
+                    ),
+                }
+            )
+            return type(class_name, (EnhancedDocsSpider,), class_dict)
+        else:
+            class_name = f"DocsSpiderBase_{domain.replace('.', '_')}"
+            class_dict.update(
+                {
+                    "name": class_name,
+                    "parse": DocsSpiderBase.parse,
+                }
+            )
+            return type(class_name, (DocsSpiderBase,), class_dict)
+
+
+class ScrapyRunner:
+    @staticmethod
+    def start_scrapy(start_urls):
+        logger.info("Starting Scrapy process")
+        process = CrawlerProcess(settings=scrapy_settings_dict)
+
+        for start_url in start_urls:
+            logger.info(f"Checking sitemap for {start_url}")
+            sitemap_checker = SitemapChecker()
+            sitemap_url = sitemap_checker.check_sitemap(start_url)
+            sitemap_urls = sitemap_checker.parse_sitemap(sitemap_url)
+
+            domain = urlparse(start_url).netloc
+            allowed_pattern_for_domain = urljoin(start_url, ".*")
+            if len(sitemap_urls) > 15:
+                follow = False
+                allowed_pattern = re.compile(allowed_pattern_for_domain)
+                urls_to_crawl = [
+                    url for url in sitemap_urls if allowed_pattern.match(url)
+                ]
+            else:
+                follow = True
+                urls_to_crawl = [start_url]
+
+            SpiderClass = SpiderCreator.create_spider_class(
+                domain, allowed_pattern_for_domain, urls_to_crawl, follow
+            )
+            process.crawl(SpiderClass)
+            logger.debug("SpiderClass: {}: {}", SpiderClass,
+                         SpiderClass.__dict__)
+        process.start()
+        logger.info("Scrapy process completed")
+
+
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
 def normalize_urls(urls):
     return [url_normalize(url) for url in urls]
 
@@ -230,11 +354,40 @@ def normalize_urls(urls):
 start_urls = normalize_urls(
     [
         # 'python.langchain.com/docs/',
+<<<<<<< HEAD
         'fastapi.tiangolo.com/ru/',
         # 'https://docs.ragas.io/en/stable/',
         # "https://docs.djangoproject.com/en/5.1/",
         # 'https://huggingface.co/docs/transformers/main/en/index'
+=======
+        # 'fastapi.tiangolo.com/ru/',
+        # 'https://docs.ragas.io/en/stable/',
+        # "https://docs.djangoproject.com/en/5.1/",
+        'https://huggingface.co/docs/transformers/main/en/index'
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
     ]
 )
 
 ScrapyRunner.start_scrapy(start_urls)
+<<<<<<< HEAD
+=======
+
+# DEBUG = False
+
+# if not DEBUG:
+#     ScrapyRunner.start_scrapy(start_urls)
+# elif DEBUG:
+#     import cProfile
+#     import pstats
+
+#     with cProfile.Profile() as pr:
+#         ScrapyRunner.start_scrapy(start_urls)
+#         pr.dump_stats("scrapy_profile.prof")
+
+#     p = pstats.Stats("scrapy_profile.prof")
+#     p.sort_stats("time").print_stats(200)
+
+#     p.sort_stats("calls").print_stats(10)
+
+#     p.print_stats("parse_item")
+>>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
