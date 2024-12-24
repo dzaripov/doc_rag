@@ -2,12 +2,16 @@ from loguru import logger
 from typing import List, Optional, Union
 from langchain.llms.base import LLM
 import openai
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 class MistralLLM(LLM):
-    api_key: str
-    model_name: str
-    api_url: str
+    api_key: str = os.getenv("MISTRAL_API_KEY")
+    model_name: str = 'mistral-large-2411'
+    api_url: str = os.getenv("MISTRAL_API_URL")
 
     @property
     def _llm_type(self) -> str:
@@ -38,10 +42,9 @@ class MistralLLM(LLM):
         return self._call(system_prompt, user_prompt, **kwargs)
     
 class MistralEmbed:
-    def __init__(self, api_key: str, model_name: str, api_url: str):
-        self.api_key = api_key
-        self.model_name = model_name
-        self.api_url = api_url
+    api_key: str = os.getenv("MISTRAL_API_KEY")
+    model_name: str = 'mistral-embed'
+    api_url: str = os.getenv("MISTRAL_API_URL")
 
     @property
     def _model_type(self) -> str:
@@ -49,16 +52,15 @@ class MistralEmbed:
 
     def _call(self, texts: List[str], **kwargs) -> List[List[float]]:
         client = openai.Client(api_key=self.api_key, base_url=self.api_url)
-        payload = {
-            "model": self.model_name,
-            "input": texts,
-            **kwargs
-        }
-        logger.debug("Request Payload: {}", payload)
+        payload = {"model": self.model_name, "input": texts, **kwargs}
+        # logger.debug("Request Payload: {}", payload)
         try:
             response = client.embeddings.create(**payload)
-            logger.debug("Response: {}", response)
-            return [embedding.embedding for embedding in response.data]
+            # logger.debug("Response: {}", response)
+            embeddings = [embedding.embedding for embedding in response.data]
+            logger.debug("Embeddings shape: ({}, {})",
+                         len(embeddings), len(embeddings[0]))
+            return embeddings
         except Exception as e:
             logger.error("Error: {}", e)
             raise
