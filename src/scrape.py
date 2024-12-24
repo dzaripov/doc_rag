@@ -240,15 +240,15 @@ class ScrapyRunner:
 def normalize_urls(urls):
     return [url_normalize(url) for url in urls]
 
+if __name__ == '__main__':
+    start_urls = normalize_urls(
+        [
+            # 'python.langchain.com/docs/',
+            'fastapi.tiangolo.com/ru/',
+            # 'https://docs.ragas.io/en/stable/',
+            # "https://docs.djangoproject.com/en/5.1/",
+            # 'https://huggingface.co/docs/transformers/main/en/index'
+        ]
+    )
 
-start_urls = normalize_urls(
-    [
-        # 'python.langchain.com/docs/',
-        'fastapi.tiangolo.com/ru/',
-        # 'https://docs.ragas.io/en/stable/',
-        # "https://docs.djangoproject.com/en/5.1/",
-        # 'https://huggingface.co/docs/transformers/main/en/index'
-    ]
-)
-
-ScrapyRunner.start_scrapy(start_urls)
+    ScrapyRunner.start_scrapy(start_urls)
