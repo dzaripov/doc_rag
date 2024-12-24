@@ -37,10 +37,5 @@ scrapy_settings_dict = {
     "DOWNLOADER_MIDDLEWARES": {
         "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
         "scrapy.downloadermiddlewares.retry.RetryMiddleware": None,
-<<<<<<< HEAD
-=======
-        "scrapy_fake_useragent.middleware.RandomUserAgentMiddleware": 400,
-        "scrapy_fake_useragent.middleware.RetryUserAgentMiddleware": 401,
->>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
     },
 }

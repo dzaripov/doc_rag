@@ -1,15 +1,12 @@
 from typing import List, Optional, Union
-
+from langchain.llms.base import LLM
+from loguru import logger
 import openai
-<<<<<<< HEAD
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
-=======
-from langchain.llms.base import LLM
-from loguru import logger
->>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
+
 
 
 class MistralLLM(LLM):
@@ -64,17 +61,10 @@ class MistralEmbed:
     def _call(self, texts: List[str], **kwargs) -> List[List[float]]:
         client = openai.Client(api_key=self.api_key, base_url=self.api_url)
         payload = {"model": self.model_name, "input": texts, **kwargs}
-<<<<<<< HEAD
         # logger.debug("Request Payload: {}", payload)
         try:
             response = client.embeddings.create(**payload)
             # logger.debug("Response: {}", response)
-=======
-        logger.debug("Request Payload: {}", payload)
-        try:
-            response = client.embeddings.create(**payload)
-            logger.debug("Response: {}", response)
->>>>>>> 0d4acb8cd2123fa8b85e52184d62733942fa751a
             embeddings = [embedding.embedding for embedding in response.data]
             logger.debug("Embeddings shape: ({}, {})",
                          len(embeddings), len(embeddings[0]))
