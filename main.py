@@ -79,4 +79,4 @@ if __name__ == '__main__':
 
     upload_and_index_document(document)
     answer = chat(question)
-    print(answer)
+    print(answer['answer'])
