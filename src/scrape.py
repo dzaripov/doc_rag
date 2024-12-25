@@ -235,6 +235,7 @@ class ScrapyRunner:
         # print(queue_processor.doc_queue)
         # asyncio.run(queue_processor.stop_processing())
 
+        return queue_processor.vector_store
 
 
 def normalize_urls(urls):
