@@ -18,12 +18,12 @@ app = FastAPI(
 )
 users_chat_history = {}
 
-pipeline = RAGPipeline(config_path='config')
+pipeline = RAGPipeline()
 
 @app.post("/upload")
-async def upload_and_index_document(document_input: DocumentInput):
+# async def upload_and_index_document(document_input: DocumentInput):
+def upload_and_index_document(document_input: DocumentInput):
     session_id = document_input.session_id or str(uuid.uuid4())
-
     # на данный момент скрапинг работает сразу в Milvus
     vector_store = ScrapyRunner.start_scrapy(document_input.docs_url)
 
@@ -56,10 +56,7 @@ def chat(query_input: QueryInput):
         session_id, ""
     )  # тут мы забираем историю запросов пользователя
     # rag_chain = get_rag_chain(query_input.config_path)  # а тут мы запускаем пайплайн
-    answer = pipeline.invoke(
-        {"input": query_input.question, "chat_history": chat_history}
-    )["answer"]
-
+    answer = pipeline.invoke(question=query_input.question, chat_history=chat_history, session_id=session_id)["answer"]
     users_chat_history[session_id] += f"\n human: {query_input.question} \n assistant: {answer}"
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
 
@@ -67,8 +64,19 @@ def chat(query_input: QueryInput):
 
 
 if __name__ == '__main__':
-    url = 'fastapi.tiangolo.com/ru/'
-    question = 'how to make app with fastapi?'
-    upload_and_index_document(url)
+
+    question = QueryInput(
+    question="how to make app with fastapi?",
+    session_id="123456",
+    config_path="custom_config"
+    )
+
+    document = DocumentInput(
+        docs_url='fastapi.tiangolo.com/ru/',
+        session_id = "123456",
+        config_path="custom_config"
+    )
+
+    upload_and_index_document(document)
     answer = chat(question)
     print(answer)

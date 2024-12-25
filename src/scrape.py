@@ -176,6 +176,10 @@ class ScrapyRunner:
 
     @staticmethod
     def start_scrapy(start_urls):
+        # Установить совместимый Event Loop для Windows
+        if isinstance(asyncio.get_event_loop(), asyncio.ProactorEventLoop):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
         loop = asyncio.get_event_loop()
         asyncioreactor.install(eventloop=loop)
 

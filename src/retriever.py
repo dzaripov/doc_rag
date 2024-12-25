@@ -6,7 +6,7 @@ from typing import List
 from loguru import logger
 
 
-def retrieve_bm25(cfg: DictConfig, query: str, chunks: List[str]):
+def retrieve_bm25(cfg, query: str, chunks: List[str]):
     pattern = r'''
             [a-zA-Z_][a-zA-Z0-9_]*  # Идентификаторы (включая ключевые слова)
             | \d+\.\d+              # Числа с плавающей точкой
@@ -29,14 +29,14 @@ def retrieve_bm25(cfg: DictConfig, query: str, chunks: List[str]):
     return sorted_chunks
 
 
-def retrieve_chunks(cfg: DictConfig, query: str, vectorstore):
+def retrieve_chunks(cfg, query: str, store):
     # SHOULD ADD HERE SELF-RAG OR OTHER RETRIEVE HACKS
     try:
         retriever_type = cfg['retriever']
         if retriever_type == 'bm25':
             chunks = retrieve_bm25(cfg, query, chunks)
         elif retriever_type == 'vectorstore':
-            retriever = vectorstore.as_retriever(search_kwargs=OmegaConf.to_container(cfg.retriever))
+            retriever = store.as_retriever()#(search_kwargs=OmegaConf.to_container(cfg.retriever))
             chunks = retriever.invoke(query)
         elif retriever_type == 'ensemble':
             retrievers = cfg['retriever']['retrievers']

@@ -6,7 +6,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from omegaconf import DictConfig
 from typing import List, Tuple
 from loguru import logger
-from retriever import retrieve_bm25 as rerank_bm25
+from .retriever import retrieve_bm25 as rerank_bm25
 # from catboost import CatBoostRanker, Pool
 
 
