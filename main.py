@@ -21,8 +21,8 @@ users_chat_history = {}
 pipeline = RAGPipeline()
 
 @app.post("/upload")
-# async def upload_and_index_document(document_input: DocumentInput):
-def upload_and_index_document(document_input: DocumentInput):
+async def upload_and_index_document(document_input: DocumentInput):
+# def upload_and_index_document(document_input: DocumentInput):
     session_id = document_input.session_id or str(uuid.uuid4())
     # на данный момент скрапинг работает сразу в Milvus
     vector_store = ScrapyRunner.start_scrapy(document_input.docs_url)
@@ -66,7 +66,7 @@ def chat(query_input: QueryInput):
 if __name__ == '__main__':
 
     question = QueryInput(
-    question="how to make app with fastapi?",
+    question="What are you think about Roman Empire?",
     session_id="123456",
     config_path="custom_config"
     )
