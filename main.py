@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from pydantic_models import QueryInput, QueryResponse, DocumentInput, DeleteFileRequest
+from pydantic_models import QueryInput, QueryResponse, DocumentInput #, DeleteFileRequest
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from scrape import ScrapyRunner
+from src.scrape import ScrapyRunner
 from src.pdf_reader import read_pdf
 from src.pipeline import RAGPipeline
 import os
@@ -64,3 +64,11 @@ def chat(query_input: QueryInput):
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
 
     return QueryResponse(answer=answer, session_id=session_id)
+
+
+if __name__ == '__main__':
+    url = 'fastapi.tiangolo.com/ru/'
+    question = 'how to make app with fastapi?'
+    upload_and_index_document(url)
+    answer = chat(question)
+    print(answer)

@@ -12,9 +12,9 @@ from pymilvus import (
     utility,
 )
 
-from mistral import MistralEmbed
+from .mistral import MistralEmbed
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from utils import get_token_count_embedding
+from .utils import get_token_count_embedding
 
 
 def recursive_text_split(

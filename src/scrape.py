@@ -14,8 +14,8 @@ import asyncio
 from scrapy import signals
 from twisted.internet import asyncioreactor
 
-from scrapy_settings import scrapy_settings_dict
-from queue_processor import QueueEmbedProcessor
+from .scrapy_settings import scrapy_settings_dict
+from .queue_processor import QueueEmbedProcessor
 
 logger.add(
     f"{__file__}/../../logs/" + "scraper_{time}.log",
