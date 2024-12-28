@@ -47,7 +47,7 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
 multidict==6.1.0
-numpy==2.2.1
+numpy==1.26.4
 omegaconf==2.3.0
 openai==1.58.1
 orjson==3.10.12
