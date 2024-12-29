@@ -33,38 +33,23 @@ def process_document(file_obj: UploadFile, url, session_id):
     response_msg = ""
     if file_obj is not None:
         file_name = file_obj.name
-        # with open(file_name, 'r') as f:
-        #     file =
-        # # Определяем путь для сохранения файла
-        # save_path = os.path.join(
-        #     "/saved_files", file_name
-        # )  # Папка saved_files для сохранения
-
-        # # Создаем папку, если ее нет
-        # os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        # # Сохраняем файл на диск
-        # with open(save_path, "wb") as f:
-        #     content = file_name.read()  # Читаем содержимое файла
-        #     f.write(content)  # Записываем содержимое в файл
-
         document = DocumentInput(
             docs_url=file_name,
             session_id="123456",
             config_path="custom_config",
         )
+        # Serialize the DocumentInput to a dictionary
         response = requests.post(
             f"{API_BASE_URL}/upload_pdf",
-            data=document,
+            json=document.model_dump(),
         )
 
         if response.status_code == 200:
             response_msg += f"Document uploaded successfully to session {session_id}\n"
         else:
-            response_msg += f"Failed to upload document: {response.text}\n"
+            response_msg += f"Failed to upload document: {response.text}. Status code: {response.status_code}\n"
 
     if url and url.strip():
-        # Отправка URL в API FastAPI
         document = DocumentInput(
             docs_url=url,
             session_id="123456",
@@ -72,7 +57,7 @@ def process_document(file_obj: UploadFile, url, session_id):
         )
         response = requests.post(
             f"{API_BASE_URL}/upload_url",
-            data=document,
+            json=document.model_dump(),  # Use .dict() to serialize the Pydantic model
         )
         if response.status_code == 200:
             response_msg += f"URL processed successfully in session {session_id}\n"
