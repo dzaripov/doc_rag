@@ -1,6 +1,5 @@
 import re
 
-from rank_bm25 import BM25Okapi
 from omegaconf import DictConfig, OmegaConf
 from typing import List
 from loguru import logger
@@ -8,7 +7,7 @@ from loguru import logger
 from .mistral import MistralEmbed
 
 
-def retrieve_bm25(cfg, query: str, store):
+def retrieve_bm25(query: str, store):
     embedder = MistralEmbed()
     query_vector = embedder(query)
 
@@ -31,7 +30,7 @@ def retrieve_chunks(cfg, query: str, store):
     try:
         retriever_type = cfg["retriever"]
         if retriever_type == "bm25":
-            chunks = retrieve_bm25(cfg, query, store)
+            chunks = retrieve_bm25(query, store)
         elif retriever_type == "vectorstore":
             retriever = store.as_retriever()
             chunks = retriever.invoke(query)

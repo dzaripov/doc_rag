@@ -32,28 +32,30 @@ def process_document(file_obj: UploadFile, url, session_id):
 
     response_msg = ""
     if file_obj is not None:
-        file_name = file_obj.filename
-        # Определяем путь для сохранения файла
-        save_path = os.path.join(
-            "/saved_files", file_name
-        )  # Папка saved_files для сохранения
+        file_name = file_obj.name
+        # with open(file_name, 'r') as f:
+        #     file =
+        # # Определяем путь для сохранения файла
+        # save_path = os.path.join(
+        #     "/saved_files", file_name
+        # )  # Папка saved_files для сохранения
 
-        # Создаем папку, если ее нет
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        # # Создаем папку, если ее нет
+        # os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-        # Сохраняем файл на диск
-        with open(save_path, "wb") as f:
-            content = file_obj.file.read()  # Читаем содержимое файла
-            f.write(content)  # Записываем содержимое в файл
+        # # Сохраняем файл на диск
+        # with open(save_path, "wb") as f:
+        #     content = file_name.read()  # Читаем содержимое файла
+        #     f.write(content)  # Записываем содержимое в файл
 
         document = DocumentInput(
-            docs_url=save_path,
+            docs_url=file_name,
             session_id="123456",
             config_path="custom_config",
         )
         response = requests.post(
             f"{API_BASE_URL}/upload_pdf",
-            document,
+            data=document,
         )
 
         if response.status_code == 200:
@@ -70,7 +72,7 @@ def process_document(file_obj: UploadFile, url, session_id):
         )
         response = requests.post(
             f"{API_BASE_URL}/upload_url",
-            document,
+            data=document,
         )
         if response.status_code == 200:
             response_msg += f"URL processed successfully in session {session_id}\n"
