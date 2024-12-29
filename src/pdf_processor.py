@@ -14,8 +14,8 @@ class PDFProcessor:
     ):
         self.collection_name = collection_name
         self.uri_connection = uri_connection
-        self.vector_store = self.init_vectorstore_collection()
         self._embed_model: MistralEmbed = MistralEmbed()
+        self.vector_store = self.init_vectorstore_collection()
 
     def init_vectorstore_collection(self):
         connections.connect(alias="default", uri=self.uri_connection, secure=False)
