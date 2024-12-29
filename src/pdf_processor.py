@@ -66,13 +66,5 @@ class PDFProcessor:
                 ],
                 metadata_field="metadata",
             )
-
-
-def process_pdf(self, pdf_file: str):
-    processor = PDFProcessor(collection_name="pdf_documents")
-
-    processor.process_pdf(pdf_file)
-
-    logger.info("PDF processing completed.")
-
-    return self.vector_store
+        logger.info("PDF processing completed.")
+        return self.vector_store

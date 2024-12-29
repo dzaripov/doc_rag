@@ -8,7 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from src.scrape import ScrapyRunner
 from src.pdf_reader import read_pdf
 from src.pipeline import RAGPipeline
-from src.pdf_processor import process_pdf
+from src.pdf_processor import PDFProcessor
 import os
 import uuid
 import logging
@@ -35,7 +35,8 @@ def upload_and_index_document(document_input: DocumentInput):
 @app.post("/upload_pdf")
 def upload_and_index_pdf(document_input: DocumentInput):
     session_id = document_input.session_id or str(uuid.uuid4())
-    vector_store = process_pdf(document_input.docs_url)
+    processor = PDFProcessor(collection_name="pdf_documents")
+    vector_store = processor.process_pdf(document_input.docs_url)
     pipeline.document_stores[session_id] = vector_store
 
 
