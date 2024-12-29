@@ -68,7 +68,7 @@ class PDFProcessor:
             )
 
 
-def process_pdf(pdf_file: str)
+def process_pdf(self, pdf_file: str):
     processor = PDFProcessor(collection_name="pdf_documents")
 
     processor.process_pdf(pdf_file)
