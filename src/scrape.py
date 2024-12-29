@@ -1,21 +1,21 @@
+import asyncio
+import hashlib
 import re
+import threading
 from urllib.parse import urljoin, urlparse
 
-import threading
 import requests
 from bs4 import BeautifulSoup
 from loguru import logger
+from scrapy import signals
 from scrapy.crawler import CrawlerProcess
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule, Spider
-from url_normalize import url_normalize
-import hashlib
-import asyncio
-from scrapy import signals
 from twisted.internet import asyncioreactor
+from url_normalize import url_normalize
 
-from .scrapy_settings import scrapy_settings_dict
 from .queue_processor import QueueEmbedProcessor
+from .scrapy_settings import scrapy_settings_dict
 
 logger.add(
     f"{__file__}/../../logs/" + "scraper_{time}.log",
@@ -34,7 +34,7 @@ class DocsSpiderMixin:
         soup = BeautifulSoup(html_content, "lxml")
         text_content = soup.get_text()
         self.queue_processor.add_document({
-            'url': url,
+            'source': url,
             'content': text_content.replace("\n", " ")
         })
         logger.debug(
@@ -170,34 +170,15 @@ class QueueProcessorExtension:
 
 class ScrapyRunner:
     @staticmethod
-    def _run_queue(loop, queue_processor):
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(queue_processor.start_processing())
-
-    @staticmethod
     def start_scrapy(start_urls):
-        # Установить совместимый Event Loop для Windows
-        if isinstance(asyncio.get_event_loop(), asyncio.ProactorEventLoop):
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-        loop = asyncio.get_event_loop()
-        asyncioreactor.install(eventloop=loop)
-
         logger.info("Init ProcessorEmbedQueue")
         collection_name = '_' + hashlib.md5('_'.join(sorted(start_urls)).encode('utf-8')).hexdigest()
         queue_processor = QueueEmbedProcessor(collection_name)
-        qthread = threading.Thread(
-            target=ScrapyRunner._run_queue,
-            args=(loop, queue_processor)
-        )
-        qthread.start()
-
-        loop.create_task(queue_processor.start_processing())
 
         queue_ext = QueueProcessorExtension()
         queue_ext.set_queue_processor(queue_processor)
 
-        logger.info("Starting Scrapy process")
+        logger.info("Starting Scrapy process") 
         process = CrawlerProcess(settings=scrapy_settings_dict)
 
         for start_url in start_urls:
@@ -229,18 +210,12 @@ class ScrapyRunner:
         process.start()
         logger.info("Scrapy process finished")
 
-        loop.call_soon_threadsafe(queue_processor.stop_processing)
-        qthread.join()
-        # loop.run_until_complete(queue_processor.stop_processing())
-        logger.info("Queue processor fully stopped")
-
-        loop.stop()
-
-        # print(queue_processor.doc_queue)
-        # asyncio.run(queue_processor.stop_processing())
-
+        logger.info("Starting queue processing")
+        asyncio.run(queue_processor.process_all_documents())
+        logger.info("Queue processing finished")
+        
         return queue_processor.vector_store
-
+    
 
 def normalize_urls(urls):
     return [url_normalize(url) for url in urls]

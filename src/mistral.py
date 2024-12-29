@@ -1,13 +1,18 @@
+import os
 from typing import List, Optional, Union
-from langchain.llms.base import LLM
-from loguru import logger
+import aiohttp
+import asyncio
+import json
+
 import openai
 from dotenv import load_dotenv
-import os
+from langchain.llms.base import LLM
+from loguru import logger
 
 load_dotenv()
 
-
+from langchain.embeddings.base import Embeddings
+from langchain_mistralai import MistralAIEmbeddings
 
 class MistralLLM(LLM):
     api_key: str = os.getenv("MISTRAL_API_KEY")
@@ -48,44 +53,4 @@ class MistralLLM(LLM):
     def generate(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
         return self._call(system_prompt, user_prompt, **kwargs)
 
-
-class MistralEmbed:
-    api_key: str = os.getenv("MISTRAL_API_KEY")
-    model_name: str = 'mistral-embed'
-    api_url: str = os.getenv("MISTRAL_API_URL")
-
-    @property
-    def _model_type(self) -> str:
-        return "mistral-embed"
-
-    def _call(self, texts: List[str], **kwargs) -> List[List[float]]:
-        client = openai.Client(api_key=self.api_key, base_url=self.api_url)
-        payload = {"model": self.model_name, "input": texts, **kwargs}
-        # logger.debug("Request Payload: {}", payload)
-        try:
-            response = client.embeddings.create(**payload)
-            # logger.debug("Response: {}", response)
-            embeddings = [embedding.embedding for embedding in response.data]
-            logger.debug("Embeddings shape: ({}, {})",
-                         len(embeddings), len(embeddings[0]))
-            return embeddings
-        except Exception as e:
-            logger.error("Error: {}", e)
-            raise
-
-    def _embed_text(
-            self, texts: Union[str, List[str]], **kwargs
-    ) -> Union[List[float], List[List[float]]]:
-        if isinstance(texts, str):
-            texts = [texts]
-        return self._call(texts, **kwargs)
-
-    def embed_documents(
-            self, query: Union[str, List[str]], **kwargs
-    ) -> Union[List[float], List[List[float]]]:
-        return self._embed_text(query, **kwargs)
-
-    def embed_query(
-            self, query: Union[str, List[str]], **kwargs
-    ) -> Union[List[float], List[List[float]]]:
-        return self._embed_text(query, **kwargs)[0]
+# Removed the custom MistralEmbeddings class

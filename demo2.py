@@ -1,7 +1,8 @@
-import gradio as gr
-import requests
 import uuid
 from typing import Optional
+
+import gradio as gr
+import requests
 
 # URL вашего API FastAPI
 API_BASE_URL = "http://localhost:8000"

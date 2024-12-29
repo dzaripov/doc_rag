@@ -1,9 +1,9 @@
 import re
-
-from rank_bm25 import BM25Okapi
-from omegaconf import DictConfig, OmegaConf
 from typing import List
+
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
+from rank_bm25 import BM25Okapi
 
 
 def retrieve_bm25(cfg, query: str, chunks: List[str]):

@@ -1,8 +1,9 @@
 import os
 
-from pymilvus import Collection
 from dotenv import load_dotenv
 from langchain_milvus import Milvus
+from pymilvus import Collection
+
 from mistral import MistralEmbed
 
 load_dotenv()

@@ -1,12 +1,15 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from pydantic_models import QueryInput, QueryResponse, DocumentInput #, DeleteFileRequest
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from src.scrape import ScrapyRunner
-from src.pdf_reader import read_pdf
-from src.pipeline import RAGPipeline
+import logging
 import os
 import uuid
-import logging
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from pydantic_models import (DocumentInput, QueryInput,  # , DeleteFileRequest
+                             QueryResponse)
+from src.pdf_reader import read_pdf
+from src.pipeline import RAGPipeline
+from src.scrape import ScrapyRunner
 
 # Set up logging
 logging.basicConfig(filename="app.log", level=logging.INFO)

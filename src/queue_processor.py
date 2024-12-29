@@ -1,198 +1,168 @@
 import asyncio
+import time
 from collections import deque
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
+from langchain.vectorstores import Milvus as LC_Milvus
 from loguru import logger
-from langchain_milvus import Milvus
-from pymilvus import (
-    Collection,
-    CollectionSchema,
-    FieldSchema,
-    DataType,
-    connections,
-    utility,
-)
+from pymilvus import connections, utility
+from langchain_mistralai import MistralAIEmbeddings
+from dotenv import load_dotenv  # Added import
 
-from .mistral import MistralEmbed
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from .utils import get_token_count_embedding
+from .utils import get_token_count_embedding, recursive_text_split
 
-
-def recursive_text_split(
-    content: str, chunk_size: int = 512, chunk_overlap: int = 50
-) -> List[str]:
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap
-    )
-    return splitter.split_text(content)
-
+# Load environment variables
+load_dotenv()
 
 class QueueEmbedProcessor:
     def __init__(self, collection_name: str):
         self.doc_queue: deque = deque()
-        self._processing: bool = False
-        self._task: Optional[asyncio.Task] = None
-        self._embed_model: MistralEmbed = MistralEmbed()
+        # Replace custom MistralEmbeddings with MistralAIEmbeddings
+        self._embed_model: MistralAIEmbeddings = MistralAIEmbeddings(
+            model="mistral-embed",
+        )
         self.collection_name: str = collection_name
         self._uri_connection: str = "http://localhost:19530"
         self.vector_store = self.init_vectorstore_collection(collection_name)
-        self._accept_new_docs: bool = True
+        self._last_request_time: float = time.time()
 
+        
     def init_vectorstore_collection(self, collection_name):
         connections.connect(alias="default", uri=self._uri_connection, secure=False)
 
         if utility.has_collection(collection_name):
             utility.drop_collection(collection_name)
 
-        return Milvus(
-            embedding_function=self._embed_model,
+        # Use MistralAIEmbeddings instead of the custom embeddings
+        embeddings = self._embed_model
+        return LC_Milvus(
+            embedding_function=embeddings,
             collection_name=collection_name,
             connection_args={"uri": self._uri_connection},
             auto_id=True,
         )
 
-    async def start_processing(self, batch_size: int = 10):
-        loop = asyncio.get_event_loop()
-        if self._processing:
-            return
-        self._processing = True
-        self._accept_new_docs = True
-        logger.info("Started processing")
-        self._task = loop.create_task(self.process_queue(batch_size))
-        return self._task
+    def add_document(self, document: Dict):
+        logger.debug("Got document")
+        self.doc_queue.append(document)
 
-    async def stop_processing(self):
-        loop = asyncio.get_event_loop()
-        logger.info("Stopping processor...")
-        self._accept_new_docs = False
-        while len(self.doc_queue) > 0:
-            await asyncio.sleep(0.1)
-        self._processing = False
-        if self._task:
-            await self._task
-            self._task = None
+    def _get_documents_from_queue(self):
+        documents = []
+        while self.doc_queue:
+            documents.append(self.doc_queue.popleft())
+        return documents
 
-        loop.stop()
-        logger.info("Processor stopped")
-
-    async def process_queue(self, batch_size: int = 10):
-        loop = asyncio.get_event_loop()
-        while self._processing:
-            logger.debug("Inside queue processing...")
-            if not self.doc_queue:
-                await asyncio.sleep(0.1)
-                continue
-            try:
-                documents = []
-                for _ in range(min(batch_size, len(self.doc_queue))):
-                    if self.doc_queue:
-                        documents.append(self.doc_queue.popleft())
-
-                if documents:
-                    await self._process_batch(documents)
-
-            except Exception as e:
-                logger.error(f"Error processing queue: {e}")
-                continue
-
-    async def _process_batch(self, documents: List[Dict]):
-        try:
-            all_chunks = self._split_documents(documents)
-            batches = self._create_batches(all_chunks)
-            await self._process_batches_periodically(batches)
-        except Exception as e:
-            logger.error(f"Error processing batch: {e}")
-            raise
-
-    def _split_documents(self, documents: List[Dict]) -> List[Dict]:
-        all_chunks = []
+    def _split_documents_into_chunks(self, documents: List[Dict]) -> List[Dict]:
+        chunks = []
         for doc in documents:
-            splitted_chunks = recursive_text_split(doc["content"], 512, 50)
-            for chunk in splitted_chunks:
-                all_chunks.append(
-                    {
-                        "url": doc.get("url", ""),
-                        "content": chunk,
-                        "char_count": len(chunk),
-                        "processed": False,
-                    }
-                )
-        return all_chunks
+            logger.debug(f"Splitting document, size: {len(doc['content'])} chars")
+            split_chunks = recursive_text_split(
+                doc['content'], 
+                chunk_size=512,
+                chunk_overlap=32
+            )
+            logger.info(f"Document split into {len(split_chunks)} chunks")
+            for chunk in split_chunks:
+                chunks.append({
+                    'source': doc['source'],
+                    'content': chunk
+                })
+        return chunks
 
-    def _create_batches(self, all_chunks: List[Dict]) -> List[List[Dict]]:
+    def _create_token_batches(self, chunks: List[Dict], max_tokens: int = 16384) -> List[List[Dict]]:  # Уменьшил лимит
         batches = []
         current_batch = []
         current_tokens = 0
-        max_tokens_per_batch = 16384
 
-        for chunk_data in all_chunks:
-            if chunk_data["processed"]:
-                continue
+        for chunk in chunks:
+            chunk_tokens = get_token_count_embedding(chunk['content'])
+            logger.debug(f"Chunk size: {len(chunk['content'])} chars, tokens: {chunk_tokens}")
 
-            tokens_count = get_token_count_embedding(chunk_data["content"])
-
-            if current_tokens + tokens_count > max_tokens_per_batch:
-                if current_batch:
-                    batches.append(current_batch)
-                    logger.debug(f"Batch created with {len(current_batch)} chunks.")
+            if current_tokens + chunk_tokens > max_tokens and current_batch:
+                logger.info(f"Creating new batch: {current_tokens} tokens, {len(current_batch)} chunks")
+                batches.append(current_batch)
                 current_batch = []
                 current_tokens = 0
-
-            current_batch.append(
-                {
-                    "url": chunk_data["url"],
-                    "content": chunk_data["content"],
-                    "char_count": chunk_data["char_count"],
-                }
-            )
-            current_tokens += tokens_count
-            chunk_data["processed"] = True
+            
+            current_batch.append(chunk)
+            current_tokens += chunk_tokens
 
         if current_batch:
+            logger.info(f"Adding final batch: {current_tokens} tokens, {len(current_batch)} chunks")
             batches.append(current_batch)
-            logger.debug(f"Final batch created with {len(current_batch)} chunks.")
 
         return batches
 
-    async def _process_batches_periodically(self, batches: List[List[Dict]]):
-        async def process_single_batch(idx: int, batch_docs: List[Dict], delay: float):
-            await asyncio.sleep(delay + 0.1)
-            texts = [bd["content"] for bd in batch_docs]
-            metadatas = [
-                {"url": bd["url"], "char_count": bd["char_count"]} for bd in batch_docs
-            ]
-            logger.debug(f"Processing batch {idx} with {len(batch_docs)} chunks.")
-            await self.vector_store.add_texts(
-                texts=texts, metadatas=metadatas, metadata_field="metadata"
+    async def _process_batch(self, batch: List[Dict], batch_number: int, total_batches: int):
+        try:
+            texts = [doc['content'] for doc in batch]
+            total_chars = sum(len(text) for text in texts)
+            total_tokens = sum(get_token_count_embedding(text) for text in texts)
+            
+            logger.info(
+                f"Processing batch {batch_number}/{total_batches}: "
+                f"chunks: {len(batch)}, "
+                f"total chars: {total_chars}, "
+                f"total tokens: {total_tokens}"
             )
-            logger.debug(
-                f"Added batch {idx} with {len(batch_docs)} chunks to vector store."
+            
+            # Now we rely on vector_store.add_texts or aadd_texts from LangChain
+            metadata = [{'source': doc['source']} for doc in batch]
+
+            await self.vector_store.aadd_texts(
+                texts=texts,
+                metadatas=metadata
             )
+            logger.debug(f"Successfully processed batch {batch_number}/{total_batches}")
+            return True
+        except Exception as e:
+            logger.error(f"Error processing batch {batch_number}: {e}")
+            logger.exception("Full error:")
+            return False
 
-        for idx, batch_docs in enumerate(batches, start=1):
-            asyncio.create_task(process_single_batch(idx, batch_docs, delay=idx))
+    async def _process_batches_continuously(self, batches: List[List[Dict]]):
+        """Process batches with continuous 1.02s interval regardless of completion"""
+        batch_queue = asyncio.Queue()
+        results = []
+        
+        async def schedule_batches():
+            for i, batch in enumerate(batches, 1):
+                await batch_queue.put((batch, i))
+                await asyncio.sleep(4) # Rate limit
+            await batch_queue.put(None)
 
-    def add_document(self, document: Dict):
-        logger.debug("Got document")
-        if not self._accept_new_docs:
-            logger.warning("Not accepting new documents - processor stopping")
-            return
-        self.doc_queue.append(document)
+        # Consumer - processes batches as they become available
+        async def process_batches():
+            while True:
+                item = await batch_queue.get()
+                if item is None:  # Check for completion signal
+                    break
+                    
+                batch, idx = item
+                result = await self._process_batch(batch, idx, len(batches))
+                results.append(result)
+                batch_queue.task_done()
 
-
-if __name__ == "__main__":
-
-    async def main():
-        processor = QueueEmbedProcessor(collection_name="my_docs6")
-        for _ in range(10):
-            processor.add_document(
-                {"url": "http://example.com", "content": "Document text here"}
-            )
-        await asyncio.sleep(2)
-        processor.add_document(
-            {"url": "http://example2.com", "content": "Document text here 2"}
+        # Run producer and consumer concurrently
+        await asyncio.gather(
+            schedule_batches(),
+            process_batches()
         )
-        await processor.start_processing()
-        await asyncio.sleep(3)  # Let it process for 5 seconds
-        await processor.stop_processing()
+        
+        return results
 
-    asyncio.run(main())
+    async def process_all_documents(self):
+        logger.info("Starting to process all documents")
+        
+        documents = self._get_documents_from_queue()
+        if not documents:
+            logger.info("No documents to process")
+            return
+
+        chunks = self._split_documents_into_chunks(documents)
+        batches = self._create_token_batches(chunks)
+        
+        logger.info(f"Processing {len(batches)} batches")
+        results = await self._process_batches_continuously(batches)
+        success_count = sum(1 for r in results if r)
+        logger.info(f"Finished processing documents. Success: {success_count}/{len(batches)}")

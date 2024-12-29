@@ -1,12 +1,14 @@
 # import numpy as np
+from typing import List, Tuple
+
 import hydra
 import torch
-
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from omegaconf import DictConfig
-from typing import List, Tuple
 from loguru import logger
+from omegaconf import DictConfig
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
 from .retriever import retrieve_bm25 as rerank_bm25
+
 # from catboost import CatBoostRanker, Pool
 
 

@@ -1,14 +1,13 @@
 import os
+from typing import Dict, List
 
 from dotenv import load_dotenv
-from typing import List, Dict
+from hydra import compose, initialize
 from langchain_core.prompts import PromptTemplate
 
-from hydra import initialize, compose
 from .mistral import MistralLLM
-
-from .retriever import retrieve_chunks
 from .reranker import rerank_chunks
+from .retriever import retrieve_chunks
 
 
 class RAGPipeline:
