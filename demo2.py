@@ -32,7 +32,7 @@ def process_document(file_obj: UploadFile, url, session_id):
         file_name = file_obj.name
         document = DocumentInput(
             docs_url=file_name,
-            session_id=session_id,  # Use the actual session_id instead of hardcoded "123456"
+            session_id=session_id,
             config_path="custom_config",
         )
         response = requests.post(
@@ -48,7 +48,7 @@ def process_document(file_obj: UploadFile, url, session_id):
     if url and url.strip():
         document = DocumentInput(
             docs_url=url,
-            session_id=session_id,  # Use the actual session_id instead of hardcoded "123456"
+            session_id=session_id,
             config_path="custom_config",
         )
         response = requests.post(
