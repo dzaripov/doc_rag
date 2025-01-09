@@ -29,6 +29,8 @@ def retrieve_bm25(query: str, store):
 def retrieve_chunks(cfg, query: str, store):
     try:
         retriever_type = cfg["retriever"]
+        chunks = []
+
         if retriever_type == "bm25":
             chunks = retrieve_bm25(query, store)
         elif retriever_type == "vectorstore":
@@ -39,11 +41,17 @@ def retrieve_chunks(cfg, query: str, store):
             chunks = []
             for retriever in retrievers:
                 config = OmegaConf.create({"retriever": retriever})
-                chunks.append(retrieve_chunks(config, query, store))
+                chunks.extend(retrieve_chunks(config, query, store))
             chunks = list(dict.fromkeys(chunks))
-            # to preserve chunks order while deleting duplicates
         else:
             raise ValueError(f"Unknown ranking type: {retriever_type}")
+
+        # Ensure consistent output format
+        if chunks and not hasattr(chunks[0], 'page_content'):
+            # If chunks are not Document objects, convert them
+            from langchain.schema import Document
+            chunks = [Document(page_content=chunk) if isinstance(chunk, str) else chunk
+                     for chunk in chunks]
 
         return chunks
 
