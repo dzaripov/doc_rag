@@ -1,4 +1,5 @@
 import os
+import logging
 
 from dotenv import load_dotenv
 from typing import List, Dict
@@ -22,17 +23,34 @@ class RAGPipeline:
         )
         self.document_stores = {}  # different document stores for sessions
 
-    def setup_qa_chain(self, question: str, chat_history: str, session_id):
+    def setup_qa_chain(self, question: str, chat_history: str, session_id: str):
+        logging.debug(f"Setting up QA chain for session {session_id}")
+        logging.debug(f"Available document stores: {list(self.document_stores.keys())}")
+
+        if session_id not in self.document_stores:
+            raise ValueError(f"No document store found for session {session_id}")
+
         cfg = {"retriever": "vectorstore", "reranker": "bm25"}
         retrieve_results = retrieve_chunks(
             cfg, query=question, store=self.document_stores[session_id]
         )
-        # rerank_results = rerank_chunks(cfg, query=question, chunks=retrieve_results)
-        rerank_results = retrieve_results
+
+        retrieve_texts = [doc.page_content for doc in retrieve_results]
+
+        # rerank_results = rerank_chunks(
+        #     cfg=cfg,
+        #     query=question,
+        #     chunks=retrieve_texts
+        # )
+        rerank_results = retrieve_texts
+
         system_template = (
             "You are an assistant that helps user with documentation.\n"
             "Based on the information search results, give an answer to the user's request:\n"
             "If you can't give the answer based only on search results, say that you don't know, don't make it up yourself."
+            "Also, if the found information doesn't answer the question, don't make it up, but say there is not enough information."
+            "Answer in the same language in which you were asked the question."
+            "If the documentation is in a different language, still use the language of the question."
         )
         user_template = (
             "Request: {input_text}\n"
@@ -57,7 +75,6 @@ class RAGPipeline:
 
         answer = self.llm.generate(formatted_system_prompt, formatted_user_prompt)
         return {
-            # some useful info
             "answer": answer
         }
 

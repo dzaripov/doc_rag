@@ -45,13 +45,19 @@ def chat(query_input: QueryInput):
     session_id = query_input.session_id or str(uuid.uuid4())
     logging.info(f"Session ID: {session_id}, User Query: {query_input.question}")
 
+    if session_id not in pipeline.document_stores:
+        raise HTTPException(
+            status_code=400,
+            detail="No documents found for this session. Please upload a document first."
+        )
+
     chat_history = users_chat_history.setdefault(session_id, "")
     answer = pipeline.invoke(
-        question=query_input.question, chat_history=chat_history, session_id=session_id
+        question=query_input.question,
+        chat_history=chat_history,
+        session_id=session_id
     )["answer"]
-    users_chat_history[
-        session_id
-    ] += f"\n human: {query_input.question} \n assistant: {answer}"
+    users_chat_history[session_id] += f"\n human: {query_input.question} \n assistant: {answer}"
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
 
     return QueryResponse(answer=answer, session_id=session_id)
