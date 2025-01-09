@@ -50,8 +50,9 @@ def retrieve_chunks(cfg, query: str, store):
         if chunks and not hasattr(chunks[0], 'page_content'):
             # If chunks are not Document objects, convert them
             from langchain.schema import Document
-            chunks = [Document(page_content=chunk) if isinstance(chunk, str) else chunk
-                     for chunk in chunks]
+            chunks = [Document(page_content=chunk)
+                      if isinstance(chunk, str) else chunk
+                      for chunk in chunks]
 
         return chunks
 
