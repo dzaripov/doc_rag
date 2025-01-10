@@ -1,8 +1,7 @@
-import re
-
 from omegaconf import DictConfig, OmegaConf
-from typing import List
 from loguru import logger
+from langchain.schema import Document
+
 
 from .mistral import MistralEmbed
 
@@ -49,7 +48,6 @@ def retrieve_chunks(cfg, query: str, store):
         # Ensure consistent output format
         if chunks and not hasattr(chunks[0], 'page_content'):
             # If chunks are not Document objects, convert them
-            from langchain.schema import Document
             chunks = [Document(page_content=chunk)
                       if isinstance(chunk, str) else chunk
                       for chunk in chunks]

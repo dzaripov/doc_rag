@@ -1,15 +1,12 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic_models import (
     QueryInput,
     QueryResponse,
     DocumentInput,
-)  # , DeleteFileRequest
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+)
 from src.scrape import ScrapyRunner
-from src.pdf_reader import read_pdf
 from src.pipeline import RAGPipeline
 from src.pdf_processor import PDFProcessor
-import os
 import uuid
 import logging
 
@@ -25,8 +22,8 @@ pipeline = RAGPipeline()
 
 
 @app.post("/upload_url")
-# async def upload_and_index_document(document_input: DocumentInput):
-def upload_and_index_document(document_input: DocumentInput):
+async def upload_and_index_document(document_input: DocumentInput):
+# def upload_and_index_document(document_input: DocumentInput):
     session_id = document_input.session_id or str(uuid.uuid4())
     vector_store = ScrapyRunner.start_scrapy(document_input.docs_url)
     pipeline.document_stores[session_id] = vector_store
@@ -43,6 +40,7 @@ def upload_and_index_pdf(document_input: DocumentInput):
 @app.post("/chat", response_model=QueryResponse)
 def chat(query_input: QueryInput):
     session_id = query_input.session_id or str(uuid.uuid4())
+
     logging.info(f"Session ID: {session_id}, User Query: {query_input.question}")
 
     if session_id not in pipeline.document_stores:
@@ -64,9 +62,9 @@ def chat(query_input: QueryInput):
 
 
 if __name__ == "__main__":
-    # question = 'How to deploy app with fastapi?'
+    question = 'How to deploy app with fastapi?'
     # question = 'What functions has fastapi?'
-    question = "What are you think about Roman Empire?"
+    # question = "What are you think about Roman Empire?"
 
     query = QueryInput(
         question=question, session_id="123456", config_path="custom_config"

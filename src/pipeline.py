@@ -21,7 +21,7 @@ class RAGPipeline:
             model_name="mistral-large-latest",
             api_url="https://api.mistral.ai/v1/",
         )
-        self.document_stores = {}  # different document stores for sessions
+        self.document_stores = {}
 
     def setup_qa_chain(self, question: str, chat_history: str, session_id: str):
         logging.debug(f"Setting up QA chain for session {session_id}")
@@ -73,11 +73,13 @@ class RAGPipeline:
             chat_history=chat_history,
         )
 
-        answer = self.llm.generate(formatted_system_prompt, formatted_user_prompt)
+        answer = self.llm.generate(
+            formatted_system_prompt,
+            formatted_user_prompt
+            )
         return {
             "answer": answer
         }
 
     def invoke(self, question: str, chat_history: str, session_id) -> Dict:
-        # Run the QA chain with the provided question
         return self.setup_qa_chain(question, chat_history, session_id)

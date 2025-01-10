@@ -1,13 +1,13 @@
 import gradio as gr
 import requests
 import uuid
-import os
 from typing import Optional
 from fastapi import UploadFile
 from pydantic_models import DocumentInput
 from loguru import logger
 
 API_BASE_URL = "http://localhost:8000"
+
 
 class SessionManager:
     def __init__(self):
@@ -21,7 +21,9 @@ class SessionManager:
     def get_session(self, session_id: str) -> Optional[dict]:
         return self.sessions.get(session_id)
 
+
 session_manager = SessionManager()
+
 
 def process_document(file_obj: UploadFile, url, session_id):
     if session_id is None:
@@ -43,7 +45,10 @@ def process_document(file_obj: UploadFile, url, session_id):
         if response.status_code == 200:
             response_msg += f"Document uploaded successfully to session {session_id}\n"
         else:
-            response_msg += f"Failed to upload document: {response.text}. Status code: {response.status_code}\n"
+            response_msg += (
+                f"Failed to upload document: {response.text}. "
+                "Status code: {response.status_code}\n"
+            )
 
     if url and url.strip():
         document = DocumentInput(
