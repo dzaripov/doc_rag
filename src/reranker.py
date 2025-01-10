@@ -1,35 +1,30 @@
-# import numpy as np
-import hydra
 import torch
-import re
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from omegaconf import DictConfig
-from typing import List, Tuple
+from typing import List
 from loguru import logger
 from rank_bm25 import BM25Okapi
 
+from .utils import tokenize_text
+
 
 def rerank_bm25(query: str, chunks: List[str]):
-    pattern = r"""
-            [a-zA-Z_][a-zA-Z0-9_]*  # Идентификаторы (включая ключевые слова)
-            | \d+\.\d+              # Числа с плавающей точкой
-            | \d+                   # Целые числа
-            | "([^"\\]|\\.)*"       # Строковые литералы в двойных кавычках
-            | '([^'\\]|\\.)*'       # Строковые литералы в одинарных кавычках
-        """
-    regex = re.compile(pattern)
 
-    tokenized_query = regex.findall(query)
-    corpus = [regex.findall(chunk) for chunk in chunks]
+    tokenized_query = tokenize_text(query)
+    logger.debug("Query prepared succesfully: {}", tokenized_query)
+
+    corpus = [tokenize_text(chunk) for chunk in chunks]
+    logger.debug("Corpus prepared succesfully: {}", corpus)
 
     bm25 = BM25Okapi(corpus)
     scores = bm25.get_scores(tokenized_query)
 
-    doc_scores = zip(chunks, scores)
-    doc_scores.sort(key=lambda doc_score: doc_score[1], reverse=True)
-    sorted_chunks = [chunk for chunk, _ in doc_scores]
-
+    sorted_chunks_scores = sorted(
+        zip(chunks, scores),
+        key=lambda x: x[1],
+        reverse=True
+        )
+    sorted_chunks = [chunk for chunk, _ in sorted_chunks_scores]
     return sorted_chunks
 
 

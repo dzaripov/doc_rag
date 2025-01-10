@@ -2,7 +2,7 @@ import os
 import logging
 
 from dotenv import load_dotenv
-from typing import List, Dict
+from typing import Dict
 from langchain_core.prompts import PromptTemplate
 
 from .mistral import MistralLLM
@@ -31,18 +31,18 @@ class RAGPipeline:
             raise ValueError(f"No document store found for session {session_id}")
 
         cfg = {"retriever": "vectorstore", "reranker": "bm25"}
+
         retrieve_results = retrieve_chunks(
             cfg, query=question, store=self.document_stores[session_id]
         )
 
         retrieve_texts = [doc.page_content for doc in retrieve_results]
 
-        # rerank_results = rerank_chunks(
-        #     cfg=cfg,
-        #     query=question,
-        #     chunks=retrieve_texts
-        # )
-        rerank_results = retrieve_texts
+        rerank_results = rerank_chunks(
+            cfg=cfg,
+            query=question,
+            chunks=retrieve_texts
+        )
 
         system_template = (
             "You are an assistant that helps user with documentation.\n"
