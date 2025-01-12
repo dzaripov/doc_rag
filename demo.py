@@ -1,8 +1,13 @@
 import gradio as gr
+import requests
 import uuid
 from typing import Optional
-import tempfile
-import os
+from fastapi import UploadFile
+from pydantic_models import DocumentInput
+from loguru import logger
+
+API_BASE_URL = "http://localhost:8000"
+
 
 class SessionManager:
     def __init__(self):
@@ -10,55 +15,90 @@ class SessionManager:
 
     def create_session(self) -> str:
         session_id = str(uuid.uuid4())
-        self.sessions[session_id] = {
-            "history": [],
-            "documents": [],
-            "urls": []
-        }
+        self.sessions[session_id] = {"history": [], "documents": [], "urls": []}
         return session_id
 
     def get_session(self, session_id: str) -> Optional[dict]:
         return self.sessions.get(session_id)
 
+
 session_manager = SessionManager()
 
-def process_document(file_obj, url, session_id):
+
+def process_document(file_obj: UploadFile, url, session_id):
     if session_id is None:
         session_id = session_manager.create_session()
-    # не стоит ли при каждой новой загрузке документа создавать новую сессию?
 
-    session = session_manager.get_session(session_id)
-    response = ""
-
+    response_msg = ""
     if file_obj is not None:
-        # Save uploaded file to temporary location
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            tmp_file.write(file_obj.read())
-            session["documents"].append(tmp_file.name)
-            response += f"Document processed and added to session {session_id}\n"
+        file_name = file_obj.name
+        document = DocumentInput(
+            docs_url=file_name,
+            session_id=session_id,
+            config_path="custom_config",
+        )
+        response = requests.post(
+            f"{API_BASE_URL}/upload_pdf",
+            json=document.model_dump(),
+        )
+
+        if response.status_code == 200:
+            response_msg += f"Document uploaded successfully to session {session_id}\n"
+        else:
+            response_msg += (
+                f"Failed to upload document: {response.text}. "
+                "Status code: {response.status_code}\n"
+            )
 
     if url and url.strip():
-        session["urls"].append(url.strip())
-        response += f"URL added to session {session_id}\n"
+        document = DocumentInput(
+            docs_url=url,
+            session_id=session_id,
+            config_path="custom_config",
+        )
+        response = requests.post(
+            f"{API_BASE_URL}/upload_url",
+            json=document.model_dump(),
+        )
+        if response.status_code == 200:
+            response_msg += f"URL processed successfully in session {session_id}\n"
+        else:
+            response_msg += f"Failed to process URL: {response.text}\n"
 
-    return response, session_id
+    return response_msg, session_id
+
 
 def chat(message, history, session_id):
+    logger.debug('New message in chat: {}', message)
+    logger.debug('Chat history: {}', history)
+    logger.debug('Session ID: {}', session_id)
+
     if session_id is None:
-        return "Please upload a document or provide a URL first", history
+        error_msg = "No active session. Please upload a document first."
+        history.append((message, error_msg))
+        return "", history
 
-    session = session_manager.get_session(session_id)
-    if not session:
-        return "Invalid session", history
+    response = requests.post(
+        f"{API_BASE_URL}/chat", json={
+            "question": message,
+            "session_id": session_id
+            }
+    )
 
-    # Here you would implement your RAG logic using session["documents"] and session["urls"]
-    response = f"Processing query: {message} for session {session_id}"
+    if response.status_code == 200:
+        logger.debug('Successful response: {}', response.json())
+        answer = response.json().get("answer", "No answer returned.")
+        history.append((message, answer))
+        return "", history
+    else:
+        error_msg = f"Error from API: {response.text}"
+        history.append((message, error_msg))
+        return "", history
 
-    history.append((message, response))
-    return response, history
 
 with gr.Blocks() as demo:
     session_id = gr.State(None)
+    logger.debug('Demo initialized')
 
     with gr.Row():
         with gr.Column():
@@ -71,18 +111,16 @@ with gr.Blocks() as demo:
 
     chatbot = gr.Chatbot()
     msg = gr.Textbox(label="Ask a question")
+    logger.debug('Chatbot initialized')
 
     process_btn.click(
         fn=process_document,
         inputs=[file_input, url_input, session_id],
-        outputs=[output, session_id]
+        outputs=[output, session_id],
     )
-
-    msg.submit(
-        fn=chat,
-        inputs=[msg, chatbot, session_id],
-        outputs=[chatbot, chatbot]
-    )
+    msg.submit(fn=chat,
+               inputs=[msg, chatbot, session_id],
+               outputs=[msg, chatbot])
 
 if __name__ == "__main__":
     demo.launch()
