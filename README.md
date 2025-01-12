@@ -8,13 +8,26 @@
 1. Сохраняем репозиторий локально:
 `git clone https://github.com/dzaripov/doc_rag`
 
-2. Поднимаем milvus
+2. Устанавливаем зависимости
+`pip install -r requirements.txt`
+
+3. Включаем VPN (для запросов в LLM)
+
+4. Получаем API KEY для LLM по [инструкции](https://www.merge.dev/blog/mistral-ai-api-key).\
+Создаем файл `.env` в корне репозитория:
+```
+MISTRAL_API_URL=https://api.mistral.ai/v1
+MISTRAL_API_KEY=<your_api_key>
+MISTRALAI_API_KEY=<your_api_key>
+```
+
+5. Поднимаем milvus
 `docker-compose up -d`
 
-3. Запускаем API
+6. Запускаем API
 `uvicorn main:app --reload`
 
-4. Запускаем интерфейс
+7. Запускаем интерфейс
 `python demo.py`
 
 Сервис будет доступен по адресу, указанному в логах запуска интерфейса

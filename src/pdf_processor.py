@@ -1,5 +1,5 @@
 from typing import List, Dict
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_milvus import Milvus
 from pymilvus import connections, utility
