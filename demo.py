@@ -25,7 +25,7 @@ class SessionManager:
 session_manager = SessionManager()
 
 
-def process_document(file_obj: UploadFile, url, session_id):
+def process_document(file_obj: UploadFile, session_id):
     if session_id is None:
         session_id = session_manager.create_session()
 
@@ -49,21 +49,6 @@ def process_document(file_obj: UploadFile, url, session_id):
                 f"Failed to upload document: {response.text}. "
                 "Status code: {response.status_code}\n"
             )
-
-    if url and url.strip():
-        document = DocumentInput(
-            docs_url=url,
-            session_id=session_id,
-            config_path="custom_config",
-        )
-        response = requests.post(
-            f"{API_BASE_URL}/upload_url",
-            json=document.model_dump(),
-        )
-        if response.status_code == 200:
-            response_msg += f"URL processed successfully in session {session_id}\n"
-        else:
-            response_msg += f"Failed to process URL: {response.text}\n"
 
     return response_msg, session_id
 
@@ -103,7 +88,6 @@ with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column():
             file_input = gr.File(label="Upload Document")
-            url_input = gr.Textbox(label="Or enter URL")
             process_btn = gr.Button("Process")
 
         with gr.Column():
@@ -115,7 +99,7 @@ with gr.Blocks() as demo:
 
     process_btn.click(
         fn=process_document,
-        inputs=[file_input, url_input, session_id],
+        inputs=[file_input, session_id],
         outputs=[output, session_id],
     )
     msg.submit(fn=chat,
