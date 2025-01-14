@@ -163,6 +163,8 @@ cython_debug/
 
 data
 logs
+volumes
 
 .history
 .gradio
+*.log
