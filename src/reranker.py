@@ -19,11 +19,7 @@ def rerank_bm25(query: str, chunks: List[str]):
     bm25 = BM25Okapi(corpus)
     scores = bm25.get_scores(tokenized_query)
 
-    sorted_chunks_scores = sorted(
-        zip(chunks, scores),
-        key=lambda x: x[1],
-        reverse=True
-        )
+    sorted_chunks_scores = sorted(zip(chunks, scores), key=lambda x: x[1], reverse=True)
     sorted_chunks = [chunk for chunk, _ in sorted_chunks_scores]
     return sorted_chunks
 

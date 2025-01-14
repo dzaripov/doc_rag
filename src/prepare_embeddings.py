@@ -19,7 +19,7 @@ def init_vectorstore_collection(collection_name):
         embedding_function=embed_model,
         collection_name=collection_name,
         connection_args={"host": "127.0.0.1", "port": "19530"},
-        auto_id=True
+        auto_id=True,
     )
 
     collection = Collection(collection_name)
@@ -47,8 +47,9 @@ async def process_data(deque_data):
     while True:
         if deque_data:
             data = deque_data.popleft()
-            embeddings = generate_embeddings(data['content'])
+            embeddings = generate_embeddings(data["content"])
             store_embeddings(np.array(embeddings))
+
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,9 @@ import uuid
 from loguru import logger
 
 # Настройка loguru
-logger.add("app.log", level="INFO", rotation="10 MB", retention="10 days", compression="zip")
+logger.add(
+    "app.log", level="INFO", rotation="10 MB", retention="10 days", compression="zip"
+)
 
 app = FastAPI(
     title="RAG Pipeline API",
@@ -50,23 +52,23 @@ def chat(query_input: QueryInput):
         logger.error(f"No documents found for session ID: {session_id}")
         raise HTTPException(
             status_code=400,
-            detail="No documents found for this session. Please upload a document first."
+            detail="No documents found for this session. Please upload a document first.",
         )
 
     chat_history = users_chat_history.setdefault(session_id, "")
     answer = pipeline.invoke(
-        question=query_input.question,
-        chat_history=chat_history,
-        session_id=session_id
+        question=query_input.question, chat_history=chat_history, session_id=session_id
     )["answer"]
-    users_chat_history[session_id] += f"\n human: {query_input.question} \n assistant: {answer}"
+    users_chat_history[
+        session_id
+    ] += f"\n human: {query_input.question} \n assistant: {answer}"
     logger.info(f"Session ID: {session_id}, AI Response: {answer}")
 
     return QueryResponse(answer=answer, session_id=session_id)
 
 
 if __name__ == "__main__":
-    question = 'How to deploy app with fastapi?'
+    question = "How to deploy app with fastapi?"
     # question = 'What functions has fastapi?'
     # question = "What are you think about Roman Empire?"
 

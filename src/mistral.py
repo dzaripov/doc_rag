@@ -8,7 +8,6 @@ import os
 load_dotenv()
 
 
-
 class MistralLLM(LLM):
     api_key: str = os.getenv("MISTRAL_API_KEY")
     model_name: str = 'mistral-large-2411'

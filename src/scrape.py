@@ -33,10 +33,9 @@ class DocsSpiderMixin:
     def process_data(self, url, html_content):
         soup = BeautifulSoup(html_content, "lxml")
         text_content = soup.get_text()
-        self.queue_processor.add_document({
-            'url': url,
-            'content': text_content.replace("\n", " ")
-        })
+        self.queue_processor.add_document(
+            {"url": url, "content": text_content.replace("\n", " ")}
+        )
         logger.debug(
             "url: {}, content retrieved (first symbols): {}",
             url,
@@ -110,13 +109,16 @@ class SitemapChecker:
 
 class SpiderCreator:
     @staticmethod
-    def create_spider_class(domain, allowed_pattern_for_domain,
-                            urls_to_crawl, follow, queue_processor):
+    def create_spider_class(
+        domain, allowed_pattern_for_domain, urls_to_crawl, follow, queue_processor
+    ):
         class_dict = {
             "allowed_domains": [domain],
             "start_urls": urls_to_crawl,
             "rules": [],
-            "__init__": lambda self, *args, **kwargs: DocsSpiderMixin.__init__(self, queue_processor)
+            "__init__": lambda self, *args, **kwargs: DocsSpiderMixin.__init__(
+                self, queue_processor
+            ),
         }
 
         if follow:
@@ -184,11 +186,12 @@ class ScrapyRunner:
         asyncioreactor.install(eventloop=loop)
 
         logger.info("Init ProcessorEmbedQueue")
-        collection_name = '_' + hashlib.md5('_'.join(sorted(start_urls)).encode('utf-8')).hexdigest()
+        collection_name = (
+            "_" + hashlib.md5("_".join(sorted(start_urls)).encode("utf-8")).hexdigest()
+        )
         queue_processor = QueueEmbedProcessor(collection_name)
         qthread = threading.Thread(
-            target=ScrapyRunner._run_queue,
-            args=(loop, queue_processor)
+            target=ScrapyRunner._run_queue, args=(loop, queue_processor)
         )
         qthread.start()
 
@@ -219,12 +222,15 @@ class ScrapyRunner:
                 urls_to_crawl = [start_url]
 
             SpiderClass = SpiderCreator.create_spider_class(
-                domain, allowed_pattern_for_domain, urls_to_crawl, follow, queue_processor
+                domain,
+                allowed_pattern_for_domain,
+                urls_to_crawl,
+                follow,
+                queue_processor,
             )
             crawler = process.crawl(SpiderClass)
             queue_ext.active_crawlers.add(crawler)
-            logger.debug("SpiderClass: {}: {}", SpiderClass,
-                         SpiderClass.__dict__)
+            logger.debug("SpiderClass: {}: {}", SpiderClass, SpiderClass.__dict__)
 
         process.start()
         logger.info("Scrapy process finished")
@@ -245,11 +251,12 @@ class ScrapyRunner:
 def normalize_urls(urls):
     return [url_normalize(url) for url in urls]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     start_urls = normalize_urls(
         [
             # 'python.langchain.com/docs/',
-            'fastapi.tiangolo.com/ru/',
+            "fastapi.tiangolo.com/ru/",
             # 'https://docs.ragas.io/en/stable/',
             # "https://docs.djangoproject.com/en/5.1/",
             # 'https://huggingface.co/docs/transformers/main/en/index'
