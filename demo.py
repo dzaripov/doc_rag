@@ -21,6 +21,12 @@ class SessionManager:
     def get_session(self, session_id: str) -> Optional[dict]:
         return self.sessions.get(session_id)
 
+    def reset_session(self, session_id: str):
+        if session_id in self.sessions:
+            self.sessions[session_id]["history"] = []
+            return True
+        return False
+
 
 session_manager = SessionManager()
 
@@ -78,7 +84,16 @@ def chat(message, history, session_id):
         return "", history
 
 
-with gr.Blocks() as demo:
+def reset_context(session_id):
+    if session_id is not None:
+        session_manager.reset_session(session_id)
+        return "Context has been reset.", []
+    return "No active session to reset.", []
+
+
+theme = gr.themes.Soft(primary_hue="blue")
+
+with gr.Blocks(theme=theme) as demo:
     session_id = gr.State(None)
     logger.debug("Demo initialized")
 
@@ -91,7 +106,10 @@ with gr.Blocks() as demo:
             output = gr.Textbox(label="Status")
 
     chatbot = gr.Chatbot()
-    msg = gr.Textbox(label="Ask a question")
+    msg = gr.Textbox(label="Ask a question", placeholder="Type your question here...")
+    with gr.Row():
+        chat_btn = gr.Button("Chat")
+        reset_btn = gr.Button("Reset Context")
     logger.debug("Chatbot initialized")
 
     process_btn.click(
@@ -99,7 +117,9 @@ with gr.Blocks() as demo:
         inputs=[file_input, session_id],
         outputs=[output, session_id],
     )
+    chat_btn.click(fn=chat, inputs=[msg, chatbot, session_id], outputs=[msg, chatbot])
     msg.submit(fn=chat, inputs=[msg, chatbot, session_id], outputs=[msg, chatbot])
+    reset_btn.click(fn=reset_context, inputs=[session_id], outputs=[output, chatbot])
 
 if __name__ == "__main__":
     demo.launch()
