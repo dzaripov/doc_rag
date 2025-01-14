@@ -22,7 +22,7 @@ class MistralLLM(LLM):
         system_prompt: str,
         user_prompt: str,
         stop: Optional[List[str]] = None,
-        max_tokens: int = 300,
+        max_tokens: int = 1024,
         **kwargs
     ) -> str:
         client = openai.Client(api_key=self.api_key, base_url=self.api_url)
