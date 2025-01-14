@@ -3,6 +3,7 @@ from pydantic_models import (
     QueryInput,
     QueryResponse,
     DocumentInput,
+    ResetChatHistoryInput
 )
 from src.scrape import ScrapyRunner
 from src.pipeline import RAGPipeline
@@ -10,7 +11,7 @@ from src.pdf_processor import PDFProcessor
 import uuid
 from loguru import logger
 
-# Настройка loguru
+
 logger.add(
     "app.log", level="INFO", rotation="10 MB", retention="10 days", compression="zip"
 )
@@ -66,6 +67,15 @@ def chat(query_input: QueryInput):
 
     return QueryResponse(answer=answer, session_id=session_id)
 
+
+@app.post("/reset_chat_history", response_model=dict)
+def reset_chat_history(reset_input: ResetChatHistoryInput):
+    session_id = reset_input.session_id
+    if session_id in users_chat_history:
+        del users_chat_history[session_id]
+        return {"message": "Chat history reset successfully."}
+    else:
+        raise HTTPException(status_code=404, detail="Session not found.")
 
 if __name__ == "__main__":
     question = "How to deploy app with fastapi?"

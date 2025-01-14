@@ -3,7 +3,7 @@ import requests
 import uuid
 from typing import Optional
 from fastapi import UploadFile
-from pydantic_models import DocumentInput
+from pydantic_models import DocumentInput, ResetChatHistoryInput
 from loguru import logger
 
 API_BASE_URL = "http://localhost:8000"
@@ -53,7 +53,7 @@ def process_document(file_obj: UploadFile, session_id):
         else:
             response_msg += (
                 f"Failed to upload document: {response.text}. "
-                "Status code: {response.status_code}\n"
+                f"Status code: {response.status_code}\n"
             )
 
     return response_msg, session_id
@@ -86,12 +86,16 @@ def chat(message, history, session_id):
 
 def reset_context(session_id):
     if session_id is not None:
-        session_manager.reset_session(session_id)
-        return "Context has been reset.", []
+        reset_input = ResetChatHistoryInput(session_id=session_id)
+        response = requests.post(f"{API_BASE_URL}/reset_chat_history", json=reset_input.dict())
+        if response.status_code == 200:
+            return "Context has been reset.", []
+        else:
+            return f"Failed to reset context: {response.text}", []
     return "No active session to reset.", []
 
 
-theme = gr.themes.Soft(primary_hue="blue")
+theme = gr.themes.Origin(primary_hue="blue")
 
 with gr.Blocks(theme=theme) as demo:
     session_id = gr.State(None)
