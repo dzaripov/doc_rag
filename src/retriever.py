@@ -11,7 +11,7 @@ def retrieve_bm25(query: str, store):
     query_vector = embedder(query)
 
     search_param = {"nprobe": 16}
-    print("Searching ... ")
+    logger.debug("Searching ... ")
     param = {
         "collection_name": "pdf_documents",
         "query_records": query_vector,
@@ -22,7 +22,7 @@ def retrieve_bm25(query: str, store):
     if status.OK():
         return results
     else:
-        print("Search failed.", status)
+        logger.debug("Search failed.", status)
 
 
 def retrieve_chunks(cfg, query: str, store):
