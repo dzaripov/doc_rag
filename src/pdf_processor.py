@@ -58,13 +58,14 @@ class PDFProcessor:
             chunks = self.split_text(content)
 
             logger.info(f"Adding {len(chunks)} chunks to the vector store.")
-            self.vector_store.add_texts(
-                texts=chunks,
-                metadatas=[
-                    {"source": file_path, "page": metadata.get("page", 0)}
-                    for _ in chunks
-                ],
-                metadata_field="metadata",
-            )
+            if len(chunks) != 0:
+                self.vector_store.add_texts(
+                    texts=chunks,
+                    metadatas=[
+                        {"source": file_path, "page": metadata.get("page", 0)}
+                        for _ in chunks
+                    ],
+                    metadata_field="metadata",
+                )
         logger.info("PDF processing completed.")
         return self.vector_store
