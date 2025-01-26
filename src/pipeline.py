@@ -6,7 +6,6 @@ from typing import Dict
 from langchain_core.prompts import PromptTemplate
 
 from .mistral import MistralLLM
-
 from .retriever import retrieve_chunks
 from .reranker import rerank_chunks
 
@@ -40,7 +39,7 @@ class RAGPipeline:
 
         rerank_results = rerank_chunks(cfg=cfg, query=question, chunks=retrieve_texts)
 
-        system_template = """You are an assistant dedicated to helping users with documentation. 
+        system_template = """You are an assistant dedicated to helping users with documentation.
 
 Your task is to provide answers based on the information retrieved from search results. Follow these guidelines:
 

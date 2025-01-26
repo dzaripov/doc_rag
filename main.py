@@ -5,9 +5,9 @@ from pydantic_models import (
     DocumentInput,
     ResetChatHistoryInput
 )
-from src.scrape import ScrapyRunner
 from src.pipeline import RAGPipeline
 from src.pdf_processor import PDFProcessor
+from src.url_processor import URLProcessor
 import uuid
 from loguru import logger
 
@@ -29,7 +29,8 @@ pipeline = RAGPipeline()
 async def upload_and_index_document(document_input: DocumentInput):
     session_id = document_input.session_id or str(uuid.uuid4())
     logger.info(f"Processing upload URL for session ID: {session_id}")
-    vector_store = ScrapyRunner.start_scrapy(document_input.docs_url)
+    processor = URLProcessor(collection_name="pdf_documents")
+    vector_store = processor.process_url(document_input.docs_url)
     pipeline.document_stores[session_id] = vector_store
     logger.info(f"Document indexed for session ID: {session_id}")
 
@@ -76,6 +77,7 @@ def reset_chat_history(reset_input: ResetChatHistoryInput):
         return {"message": "Chat history reset successfully."}
     else:
         raise HTTPException(status_code=404, detail="Session not found.")
+
 
 if __name__ == "__main__":
     question = "How to deploy app with fastapi?"

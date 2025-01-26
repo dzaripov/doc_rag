@@ -2,7 +2,6 @@ from omegaconf import DictConfig, OmegaConf
 from loguru import logger
 from langchain.schema import Document
 
-
 from .mistral import MistralEmbed
 
 
